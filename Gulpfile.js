@@ -1,36 +1,27 @@
-var gulp = require('gulp'),
-  babel = require('gulp-babel'),
-  run = require('gulp-run'),
-  rename = require('gulp-rename'),
-  asar  = require('gulp-asar'),
-  clean = require('gulp-clean');
+var gulp = require( 'gulp' );
+var requireDir = require( 'require-dir' );
+var runSequence = require('run-sequence');
 
-gulp.task('transpile-app', function() {
-  return gulp.src('app/index.es6.js')
-    .pipe(babel())
-    .pipe(rename('index.js'))
-    .pipe(gulp.dest('app'));
-});
+requireDir( './gulp' );
 
+function watchAndRebuild() {
+	gulp.watch( ['./compile/**/*'], [ 'build' ] );
+}
 
-gulp.task('clean', function(){
-    return gulp.src('package', {read: false})
-        .pipe(clean({force: true}));
-});
+function watchAndRecompile() {
+	gulp.watch( './component/**/*', [ 'browserify' ] );
+	gulp.watch( [ './index.html', './index.js' ], [ 'through' ] );
+	gulp.watch( './style/**/*', [ 'less' ] );
+}
 
-gulp.task('copy-app', ['clean'], function(){
-    return gulp.src(['app/**/*', 'browser/**/*', 'package.json'], {base: '.'})
-        .pipe(gulp.dest('package'));
-});
+gulp.task( 'watch-all', function () {
+	watchAndRecompile();
+	watchAndRebuild();
+} );
 
-gulp.task('package', ['copy-app'], function(){
-    return gulp.src('package/**/*')
-        .pipe(asar('app.asar'))
-        .pipe(gulp.dest('dist'));
-});
+gulp.task( 'watch-compile-build', runSequence('compile', 'build', 'watch-all') );
 
-gulp.task('run', ['default'], function() {
-  return run('electron .').exec();
-});
+gulp.task( 'watch-compile', [ 'build' ], watchAndRecompile );
+gulp.task( 'watch-build', [ 'build' ], watchAndRebuild );
 
-gulp.task('default', ['transpile-app']);
+gulp.task( 'default', [ 'watch-compile-build' ] );
